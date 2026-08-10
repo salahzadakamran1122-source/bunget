@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Финансовый Учет v10.3 PRO</title>
+    <style>
+        :root { --bg-color: #0f172a; --card-bg: #1e293b; --primary: #3b82f6; --accent: #10b981; --danger: #ef4444; --warning: #f59e0b; --text: #f8fafc; --text-muted: #94a3b8; --border: #334155; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); color: var(--text); margin: 0; padding: 20px; }
+        .container { max-width: 900px; margin: auto; background: var(--card-bg); padding: 30px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+        h2 { text-align: center; color: var(--primary); margin-bottom: 25px; }
+        
+        .main-tabs { display: flex; gap: 15px; justify-content: center; margin-bottom: 30px; border-bottom: 2px solid var(--border); padding-bottom: 15px; flex-wrap: wrap;}
+        .main-tab-btn { background: var(--border); color: var(--text); border: none; padding: 12px 24px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; transition: 0.3s; }
+        .main-tab-btn.active { background: var(--primary); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .category-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+        .cat-btn { background: #1f2937; border: 1px solid var(--border); border-radius: 12px; padding: 25px 15px; font-size: 18px; font-weight: bold; color: var(--text); cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        .cat-btn:hover { background: #374151; border-color: var(--primary); transform: translateY(-3px); }
+        .cat-btn span { font-size: 32px; }
+
+        .category-page { display: none; background: #111827; padding: 20px; border-radius: 12px; border: 1px solid var(--border); }
+        .btn-back { background: transparent; border: 1px solid var(--text-muted); color: var(--text-muted); padding: 8px 15px; border-radius: 6px; cursor: pointer; margin-bottom: 15px; display: inline-block; }
+        .btn-back:hover { background: #374151; color: var(--text); }
+
+        .form-group { background: var(--card-bg); padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 15px; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; color: var(--accent); }
+        input, select { background: #0f172a; border: 1px solid var(--border); color: var(--text); padding: 10px 12px; border-radius: 6px; font-size: 16px; width: 100%; box-sizing: border-box; margin-bottom: 10px; color-scheme: dark;}
+        optgroup { color: var(--primary); font-style: normal; font-weight: bold; }
+        
+        .flex-row { display: flex; gap: 10px; }
+        .btn-save { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 6px; font-weight: bold; font-size: 16px; cursor: pointer; width: 100%; transition: 0.2s; text-align: center; text-decoration: none; display: inline-block; box-sizing: border-box;}
+        .btn-save:hover { filter: brightness(1.1); }
+        .btn-del { background: var(--danger); padding: 4px 8px; font-size: 12px; cursor: pointer; border: none; color: white; border-radius: 4px;}
+
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid var(--border); padding: 10px; text-align: left; font-size: 14px; }
+        th { background: #1f2937; }
+
+        .wallet-panel { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 20px; }
+        .wallet-card { background: #1f2937; padding: 20px; border-radius: 10px; border-left: 5px solid var(--primary); transition: 0.3s; }
+        .wallet-card h4 { margin: 0 0 10px 0; color: var(--text-muted); }
+        .wallet-card p { font-size: 22px; font-weight: bold; margin: 0; }
+        .credit-red { border-left: 5px solid var(--danger) !important; color: var(--danger); }
+        .credit-red h4 { color: var(--danger); }
+        
+        .total-budget { text-align: center; font-size: 24px; font-weight: bold; color: var(--accent); background: #1f2937; padding: 15px; border-radius: 10px; border: 1px solid var(--accent); margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>💎 Бюджет v10.3 PRO (Java Server)</h2>
+    
+    <div class="main-tabs">
+        <button class="main-tab-btn active" onclick="switchMainTab('add')">📥 Внести Расход</button>
+        <button class="main-tab-btn" onclick="switchMainTab('daily')">📋 Журнал</button>
+        <button class="main-tab-btn" onclick="switchMainTab('summary')">📊 Сводка и Доходы</button>
+        <button class="main-tab-btn" onclick="switchMainTab('archive')">📦 Архив и База</button>
+    </div>
+
+    <!-- Вкладка 1: ДОБАВЛЕНИЕ РАСХОДОВ -->
+    <div id="tab-add" class="tab-content active">
+        <div style="margin-bottom: 20px; background: #1f2937; padding: 15px; border-radius: 12px; border: 1px solid var(--primary);">
+            <label style="color: var(--text);">С какого счета платим?</label>
+            <select id="activeWallet" style="margin:0;">
+                <option value="cash">Наличные</option>
+                <option value="salary">Зарплатная карта</option>
+                <option value="credit">Кредитная карта (Лимит 500 AZN)</option>
+            </select>
+        </div>
+
+        <div id="category-menu" class="category-grid">
+            <button class="cat-btn" onclick="openPage('page-child')"><span>👶</span> Ребенок</button>
+            <button class="cat-btn" onclick="openPage('page-food')"><span>🍽️</span> Еда и Продукты</button>
+            <button class="cat-btn" onclick="openPage('page-home')"><span>⚡</span> Дом / Авто</button>
+            <button class="cat-btn" onclick="openPage('page-debt')"><span>🤝</span> Долги</button>
+        </div>
+
+        <!-- РЕБЕНОК -->
+        <div id="page-child" class="category-page">
+            <button class="btn-back" onclick="closePages()">🔙 Назад в меню</button>
+            <h3>👶 Расходы на ребенка</h3>
+            <div class="form-group">
+                <label>Что купили?</label>
+                <select id="child_sub">
+                    <option>Памперсы</option>
+                    <option>Питание (Смесь/Каша)</option>
+                    <option>Одежда</option>
+                    <option>Игрушки</option>
+                    <option>Лекарства</option>
+                    <option>Прочее</option>
+                </select>
+                <div class="flex-row">
+                    <input type="number" id="child_qty" placeholder="Кол-во (шт)" value="1">
+                    <input type="number" step="0.01" id="child_price" placeholder="Цена за 1 шт (AZN)">
+                </div>
+                <button class="btn-save" onclick="saveItemWithCalc('Ребенок', 'child_sub', 'child_qty', 'child_price')">Записать расход</button>
+            </div>
+        </div>
+
+        <!-- ЕДА -->
+        <div id="page-food" class="category-page">
+            <button class="btn-back" onclick="closePages()">🔙 Назад в меню</button>
+            <h3>🍽️ Еда и Продукты</h3>
+            <div class="form-group">
+                <label>Что купили?</label>
+                <select id="food_sub">
+                    <optgroup label="Завтрак">
+                        <option>Яйца</option>
+                        <option>Помидоры</option>
+                        <option>Сливочное масло</option>
+                        <option>Сыр</option>
+                        <option>Творог</option>
+                        <option>Чай / Кофе</option>
+                    </optgroup>
+                    <optgroup label="Бакалея">
+                        <option>Хлеб</option>
+                        <option>Мука</option>
+                        <option>Макароны</option>
+                        <option>Рис</option>
+                        <option>Гречка</option>
+                        <option>Сахар / Соль</option>
+                        <option>Масло растительное</option>
+                    </optgroup>
+                    <optgroup label="Мясо и Рыба">
+                        <option>Говядина</option>
+                        <option>Баранина</option>
+                        <option>Курица</option>
+                        <option>Фарш</option>
+                        <option>Рыба</option>
+                    </optgroup>
+                    <optgroup label="Гастроном и Прочее">
+                        <option>Колбаса / Сосиски</option>
+                        <option>Овощи / Зелень</option>
+                        <option>Фрукты</option>
+                        <option>Сладости</option>
+                    </optgroup>
+                </select>
+                <div class="flex-row">
+                    <input type="number" id="food_qty" placeholder="Кол-во (кг/шт)" value="1">
+                    <input type="number" step="0.01" id="food_price" placeholder="Цена за единицу (AZN)">
+                </div>
+                <button class="btn-save" onclick="saveItemWithCalc('Еда', 'food_sub', 'food_qty', 'food_price')">Записать расход</button>
+            </div>
+        </div>
+
+        <!-- ДОМ И АВТО -->
+        <div id="page-home" class="category-page">
+            <button class="btn-back" onclick="closePages()">🔙 Назад в меню</button>
+            <h3>⚡ Дом и Транспорт</h3>
+            <div class="form-group">
+                <label>Категория</label>
+                <select id="home_sub" onchange="checkAutoLiters()">
+                    <optgroup label="Коммуналка">
+                        <option>Свет</option>
+                        <option>Газ</option>
+                        <option>Вода</option>
+                        <option>Интернет / ТВ</option>
+                    </optgroup>
+                    <optgroup label="Дом">
+                        <option>Бытовая химия / Порошок</option>
+                        <option>Хозтовары</option>
+                    </optgroup>
+                    <optgroup label="Авто">
+                        <option>Бензин</option>
+                        <option>Электричество (Зарядка)</option>
+                        <option>Ремонт / Мойка</option>
+                    </optgroup>
+                </select>
+                <div class="flex-row">
+                    <input type="number" id="home_qty" placeholder="Кол-во (литры / шт)" value="1">
+                    <input type="number" step="0.01" id="home_price" placeholder="Цена за единицу (AZN)">
+                </div>
+                <button class="btn-save" onclick="saveItemWithCalc('Дом/Авто', 'home_sub', 'home_qty', 'home_price')">Записать расход</button>
+            </div>
+        </div>
+
+        <!-- ДОЛГИ -->
+        <div id="page-debt" class="category-page">
+            <button class="btn-back" onclick="closePages()">🔙 Назад в меню</button>
+            <h3>🤝 Управление долгами</h3>
+            
+            <div class="form-group" style="border-left: 4px solid var(--danger);">
+                <label style="color:var(--danger)">1. Я взял в долг (Упадет на счет)</label>
+                <select id="debt_in_wallet" style="margin-bottom:10px;">
+                    <option value="cash">В Наличные</option>
+                    <option value="salary">На Карту</option>
+                </select>
+                <input type="number" step="0.01" id="debt_in_sum" placeholder="Сумма (AZN)">
+                <button class="btn-save" style="background:var(--danger);" onclick="manageDebt('take')">Оформить: Взял долг</button>
+            </div>
+
+            <div class="form-group" style="border-left: 4px solid var(--primary); margin-top:20px;">
+                <label style="color:var(--primary)">2. Я вернул долг (Уйдет со счета)</label>
+                <select id="pay_back_wallet" style="margin-bottom:10px;">
+                    <option value="cash">С Наличных</option>
+                    <option value="salary">С Карты</option>
+                </select>
+                <input type="number" step="0.01" id="pay_back_sum" placeholder="Сумма (AZN)">
+                <button class="btn-save" style="background:var(--primary);" onclick="manageDebt('pay_back')">Оформить: Я вернул долг</button>
+            </div>
+
+            <div class="form-group" style="border-left: 4px solid var(--warning); margin-top:20px;">
+                <label style="color:var(--warning)">3. Я дал в долг (Уйдет с активного счета)</label>
+                <input type="number" step="0.01" id="debt_out_sum" placeholder="Сумма (AZN)">
+                <button class="btn-save" style="background:var(--warning);" onclick="manageDebt('give')">Оформить: Дал в долг</button>
+            </div>
+
+            <div class="form-group" style="border-left: 4px solid var(--accent); margin-top:20px;">
+                <label style="color:var(--accent)">4. Мне вернули долг (Упадет на счет)</label>
+                <select id="return_to_wallet" style="margin-bottom:10px;">
+                    <option value="cash">В Наличные</option>
+                    <option value="salary">На Карту</option>
+                </select>
+                <input type="number" step="0.01" id="return_sum" placeholder="Сумма (AZN)">
+                <button class="btn-save" style="background:var(--accent);" onclick="manageDebt('return_to_me')">Оформить: Мне вернули</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Вкладка 2: ЖУРНАЛ -->
+    <div id="tab-daily" class="tab-content">
+        <h3>Текущие расходы</h3>
+        <table id="dailyTable">
+            <thead><tr><th>Дата</th><th>Счет</th><th>Что</th><th>Сумма</th></tr></thead>
+            <tbody></tbody>
+        </table>
+        <br><button class="btn-save" style="background: var(--danger);" onclick="moveToArchive()">📦 Отправить всё в архив (Конец месяца)</button>
+    </div>
+
+    <!-- Вкладка 3: СВОДКА И ДОХОДЫ -->
+    <div id="tab-summary" class="tab-content">
+        
+        <div class="total-budget" id="uiTotalBudget">
+            Общий бюджет (Наличные + Карта): 0 AZN
+        </div>
+
+        <div style="background: #1f2937; padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid var(--border);">
+            <h3 style="margin-top:0; color:var(--primary);">📥 Добавить Доход</h3>
+            <div class="flex-row">
+                <input type="date" id="incDate">
+                <select id="incWallet" style="flex: 1;">
+                    <option value="salary">На карту</option>
+                    <option value="cash">Наличными</option>
+                </select>
+            </div>
+            <div class="flex-row" style="margin-top: 10px;">
+                <input type="number" step="0.01" id="incSum" placeholder="Сумма (AZN)" style="flex: 2; margin-bottom: 0;">
+                <button class="btn-save" style="margin-top:0; flex: 1;" onclick="addIncome()">Пополнить</button>
+            </div>
+            <table id="incomeTable" style="margin-top:15px; font-size:13px;">
+                <thead><tr><th>Дата</th><th>Куда</th><th>Сумма (AZN)</th><th>Действие</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <h3>Баланс Кошельков</h3>
+        <div class="wallet-panel">
+            <div class="wallet-card"><h4>Наличные</h4><p id="uiCash">0 AZN</p></div>
+            <div class="wallet-card"><h4>Зарплатная карта</h4><p id="uiSalary">0 AZN</p></div>
+            <div class="wallet-card" id="creditCardUI">
+                <h4>Кредитная карта</h4>
+                <p id="uiCredit">500 AZN</p>
+                <small id="creditNote" style="display:none; color:inherit;">Долг банку!</small>
+            </div>
+            <div class="wallet-card">
+                <h4>Мои долги (Я должен)</h4><p id="uiMyDebt" style="color:var(--danger)">0 AZN</p>
+                <h4 style="margin-top:10px;">Мне должны</h4><p id="uiOwedToMe" style="color:var(--warning)">0 AZN</p>
+            </div>
+        </div>
+        
+        <h3 id="totalSpentUI">Общие расходы: 0 AZN</h3>
+    </div>
+
+    <!-- Вкладка 4: АРХИВ И БАЗА -->
+    <div id="tab-archive" class="tab-content">
+        <h3>💾 Резервная копия и Telegram</h3>
+        
+        <div style="background: #1f2937; padding: 15px; border-radius: 10px; border: 1px solid var(--border); margin-bottom: 20px;">
+            <label>Telegram Bot Token:</label>
+            <input type="text" id="tgToken" placeholder="Например: 123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ" oninput="saveTgSettings()">
+            <label>Telegram Chat ID:</label>
+            <input type="text" id="tgChatId" placeholder="Например: 987654321" oninput="saveTgSettings()">
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-bottom: 20px; background: #1f2937; padding: 15px; border-radius: 10px; border: 1px solid var(--border);">
+            <button class="btn-save" style="background: var(--primary);" onclick="exportData()">💾 Сохранить в файл</button>
+            <label class="btn-save" style="background: var(--warning); text-align: center; cursor: pointer; margin: 0; line-height: normal; padding: 12px;">
+                📂 Загрузить из файла <input type="file" id="importFile" style="display:none" onchange="importData(event)">
+            </label>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h3>Архив записей</h3>
+        </div>
+        <div style="margin-bottom: 15px;">
+            <label>Поиск по месяцу: </label>
+            <input type="month" id="archiveFilter" onchange="renderArchive()">
+        </div>
+        <table id="archiveTable">
+            <thead><tr><th>Дата</th><th>Категория</th><th>Что именно</th><th>Сумма</th></tr></thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    document.getElementById('incDate').valueAsDate = new Date();
+
+    let records = [];
+    let archive = [];
+    let incomes = [];
+    let w = { cash: 0, salary: 0, creditSpent: 0, myDebts: 0, owedToMe: 0 };
+    const CREDIT_LIMIT = 500;
+
+    const SERVER_URL = 'http://localhost:8080/api/data';
+
+    window.addEventListener('DOMContentLoaded', () => {
+        if(localStorage.getItem("v10_tgToken")) document.getElementById('tgToken').value = localStorage.getItem("v10_tgToken");
+        if(localStorage.getItem("v10_tgChatId")) document.getElementById('tgChatId').value = localStorage.getItem("v10_tgChatId");
+        loadDataFromServer();
+    });
+
+    function saveTgSettings() {
+        localStorage.setItem("v10_tgToken", document.getElementById('tgToken').value.trim());
+        localStorage.setItem("v10_tgChatId", document.getElementById('tgChatId').value.trim());
+    }
+
+    async function loadDataFromServer() {
+        try {
+            const res = await fetch(SERVER_URL);
+            const data = await res.json();
+            if (data && data.wallets) {
+                records = data.records || [];
+                archive = data.archive || [];
+                incomes = data.incomes || [];
+                w = data.wallets || w;
+                renderTables(); updateSummary();
+            }
+        } catch(e) {
+            console.error("Ошибка загрузки с Java сервера:", e);
+        }
+    }
+
+    async function saveAll() {
+        renderTables(); updateSummary();
+        try {
+            await fetch(SERVER_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ records, archive, incomes, wallets: w })
+            });
+        } catch(e) {
+            console.error("Ошибка сохранения на Java сервер:", e);
+        }
+    }
+
+    function switchMainTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.main-tab-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById('tab-' + tabId).classList.add('active');
+        event.currentTarget.classList.add('active');
+        if(tabId === 'summary') updateSummary();
+    }
+
+    function openPage(pageId) {
+        document.getElementById('category-menu').style.display = 'none';
+        document.querySelectorAll('.category-page').forEach(el => el.style.display = 'none');
+        document.getElementById(pageId).style.display = 'block';
+    }
+    
+    function closePages() {
+        document.querySelectorAll('.category-page').forEach(el => el.style.display = 'none');
+        document.getElementById('category-menu').style.display = 'grid';
+    }
+
+    function checkAutoLiters() {
+        let val = document.getElementById("home_sub").value;
+        let qtyInput = document.getElementById("home_qty");
+        if(val === 'Бензин') {
+            qtyInput.placeholder = "Кол-во (Литры)";
+        } else {
+            qtyInput.placeholder = "Кол-во (шт/услуги)";
+        }
+    }
+
+    function exportData() {
+        let data = { records, archive, incomes, wallets: w };
+        let blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+        let url = URL.createObjectURL(blob);
+        let a = document.createElement('a');
+        a.href = url;
+        a.download = `budget_backup_${new Date().toISOString().slice(0,10)}.json`;
+        a.click();
+    }
+
+    function importData(event) {
+        let file = event.target.files[0];
+        if(!file) return;
+        let reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                let data = JSON.parse(e.target.result);
+                if(data.records) records = data.records;
+                if(data.archive) archive = data.archive;
+                if(data.incomes) incomes = data.incomes;
+                if(data.wallets) w = data.wallets;
+                saveAll();
+                alert("Данные успешно загружены из файла!");
+            } catch(err) {
+                alert("Ошибка чтения файла!");
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    function chargeWallet(walletType, amount) {
+        if(walletType === 'cash') w.cash -= amount;
+        else if(walletType === 'salary') w.salary -= amount;
+        else if(walletType === 'credit') w.creditSpent += amount; 
+    }
+
+    function saveItemWithCalc(category, selectId, qtyId, priceId) {
+        let subcat = document.getElementById(selectId).value;
+        let qty = parseFloat(document.getElementById(qtyId).value);
+        let price = parseFloat(document.getElementById(priceId).value);
+
+        if(!price || price <= 0) return alert("Введите цену за единицу!");
+        if(!qty || qty <= 0) qty = 1;
+
+        let totalSum = qty * price;
+        let wallet = document.getElementById("activeWallet").value;
+        chargeWallet(wallet, totalSum);
+        
+        let unitLabel = "шт.";
+        if (subcat === 'Бензин') unitLabel = "л.";
+        
+        let subcatText = `${subcat} (${qty} ${unitLabel} × ${price} AZN)`;
+
+        records.push({ date: new Date().toLocaleDateString(), wallet: wallet, category: category, subcategory: subcatText, amount: totalSum });
+        
+        document.getElementById(qtyId).value = "1";
+        document.getElementById(priceId).value = "";
+        
+        saveAll(); 
+        alert(`Записано! Итого: ${totalSum.toFixed(2)} AZN`); 
+        closePages();
+    }
+
+    function manageDebt(type) {
+        if (type === 'take') { 
+            let val = parseFloat(document.getElementById("debt_in_sum").value);
+            let targetWallet = document.getElementById("debt_in_wallet").value;
+            if(!val || val <= 0) return alert("Введите сумму!");
+            
+            if(targetWallet === 'cash') w.cash += val;
+            else if(targetWallet === 'salary') w.salary += val;
+            
+            w.myDebts += val;
+            document.getElementById("debt_in_sum").value = "";
+            alert("Записано: вы взяли в долг.");
+        } 
+        else if (type === 'pay_back') { 
+            let val = parseFloat(document.getElementById("pay_back_sum").value);
+            let sourceWallet = document.getElementById("pay_back_wallet").value;
+            if(!val || val <= 0) return alert("Введите сумму!");
+            if(w.myDebts < val) return alert("Сумма возврата больше, чем ваш общий долг!");
+            
+            if(sourceWallet === 'cash') {
+                if(w.cash < val) return alert("Недостаточно наличных!");
+                w.cash -= val;
+            } else if(sourceWallet === 'salary') {
+                if(w.salary < val) return alert("Недостаточно средств на карте!");
+                w.salary -= val;
+            }
+            w.myDebts -= val;
+            document.getElementById("pay_back_sum").value = "";
+            alert("Записано: вы вернули долг.");
+        }
+        else if (type === 'give') { 
+            let val = parseFloat(document.getElementById("debt_out_sum").value);
+            if(!val || val <= 0) return alert("Введите сумму!");
+            let wallet = document.getElementById("activeWallet").value;
+            chargeWallet(wallet, val); 
+            w.owedToMe += val;
+            document.getElementById("debt_out_sum").value = "";
+            alert("Записано: вы дали в долг.");
+        }
+        else if (type === 'return_to_me') { 
+            let val = parseFloat(document.getElementById("return_sum").value);
+            let targetWallet = document.getElementById("return_to_wallet").value;
+            if(!val || val <= 0) return alert("Введите сумму!");
+            if(w.owedToMe < val) return alert("Сумма возврата больше, чем вам должны!");
+
+            if(targetWallet === 'cash') w.cash += val;
+            else if(targetWallet === 'salary') w.salary += val;
+            
+            w.owedToMe -= val;
+            document.getElementById("return_sum").value = "";
+            alert("Записано: вам вернули долг.");
+        }
+        saveAll(); closePages();
+    }
+
+    function addIncome() {
+        let val = parseFloat(document.getElementById("incSum").value);
+        let d = document.getElementById("incDate").value;
+        let targetWallet = document.getElementById("incWallet").value;
+        
+        if(!val || !d) return;
+        incomes.push({ id: Date.now(), date: d, amount: val, wallet: targetWallet });
+        
+        if(targetWallet === 'cash') w.cash += val;
+        else if(targetWallet === 'salary') w.salary += val;
+        
+        document.getElementById("incSum").value = ""; saveAll();
+    }
+
+    function removeIncome(id, amount, targetWallet) {
+        incomes = incomes.filter(i => i.id !== id);
+        let walletKey = targetWallet || 'cash';
+        if(walletKey === 'cash') w.cash -= amount;
+        else if(walletKey === 'salary') w.salary -= amount;
+        saveAll();
+    }
+
+    function renderTables() {
+        let db = document.querySelector("#dailyTable tbody"); db.innerHTML = "";
+        records.forEach(r => {
+            let wName = r.wallet === 'cash' ? 'Наличные' : (r.wallet === 'salary' ? 'Карта' : 'Кредитка');
+            db.innerHTML += `<tr><td>${r.date}</td><td>${wName}</td><td>${r.category} <br> <small style="color:var(--text-muted)">${r.subcategory}</small></td><td style="color:var(--danger); font-weight:bold;">${r.amount.toFixed(2)} AZN</td></tr>`;
+        });
+        
+        let ib = document.querySelector("#incomeTable tbody"); ib.innerHTML = "";
+        incomes.forEach(i => {
+            let wName = (i.wallet === 'salary') ? 'Карта' : 'Наличные';
+            let wKey = i.wallet || 'cash';
+            ib.innerHTML += `<tr><td>${i.date}</td><td>${wName}</td><td style="color:var(--accent); font-weight:bold;">${i.amount.toFixed(2)} AZN</td><td><button class="btn-del" onclick="removeIncome(${i.id}, ${i.amount}, '${wKey}')">Удалить</button></td></tr>`;
+        });
+        renderArchive();
+    }
+
+    function renderArchive() {
+        let ab = document.querySelector("#archiveTable tbody"); ab.innerHTML = "";
+        let filterVal = document.getElementById("archiveFilter").value;
+        archive.forEach(r => {
+            let show = true;
+            if (filterVal) {
+                let parts = r.date.split('.');
+                if(parts.length === 3 && `${parts[2]}-${parts[1]}` !== filterVal) show = false;
+            }
+            if(show) ab.innerHTML += `<tr><td>${r.date}</td><td>${r.category}</td><td>${r.subcategory}</td><td>${r.amount.toFixed(2)} AZN</td></tr>`;
+        });
+    }
+
+    function updateSummary() {
+        document.getElementById("uiCash").textContent = w.cash.toFixed(2) + " AZN";
+        document.getElementById("uiSalary").textContent = w.salary.toFixed(2) + " AZN";
+        
+        let totalBudget = w.cash + w.salary;
+        document.getElementById("uiTotalBudget").textContent = `Общий бюджет (Наличные + Карта): ${totalBudget.toFixed(2)} AZN`;
+        
+        let availCredit = CREDIT_LIMIT - w.creditSpent;
+        let cUI = document.getElementById("creditCardUI");
+        document.getElementById("uiCredit").textContent = availCredit.toFixed(2) + " / " + CREDIT_LIMIT;
+        
+        if (w.creditSpent > 0) {
+            cUI.classList.add("credit-red");
+            document.getElementById("creditNote").style.display = "block";
+            document.getElementById("creditNote").textContent = `Долг банку: ${w.creditSpent.toFixed(2)} AZN`;
+        } else {
+            cUI.classList.remove("credit-red");
+            document.getElementById("creditNote").style.display = "none";
+        }
+
+        document.getElementById("uiMyDebt").textContent = w.myDebts.toFixed(2) + " AZN";
+        document.getElementById("uiOwedToMe").textContent = w.owedToMe.toFixed(2) + " AZN";
+
+        let exp = records.reduce((sum, r) => sum + r.amount, 0);
+        document.getElementById("totalSpentUI").textContent = `Общие расходы: ${exp.toFixed(2)} AZN`;
+    }
+
+    function moveToArchive() {
+        if(confirm("Отправить текущие расходы в архив? Они пропадут из Журнала.")) {
+            archive.push(...records); records = []; saveAll(); alert("Перенесено!");
+        }
+    }
+</script>
+</body>
+</html>
